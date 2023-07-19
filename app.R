@@ -53,7 +53,7 @@ ui <- fluidPage(
                                  selected = colnames(africa)[8]),
                      selectInput("q1","Variable for inner colour",choices=colnames(africa)[c(6:22,5,4)],
                                  selected = colnames(africa)[9]),
-                     selectInput("r1","Variable for label",choices=colnames(africa)[c(6:22,5,4)],
+                     selectInput("r1","Variable for shape",choices=colnames(africa)[c(6:22,5,4)],
                                  selected = colnames(africa)[10]),
                      selectInput("s1","Variable for line colour",choices=colnames(africa)[c(6:22,5,4)],
                                  selected = colnames(africa)[11]),
