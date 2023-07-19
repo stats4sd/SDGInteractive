@@ -158,7 +158,7 @@ server <- function(input, output,session) {
           theme_light()+
           theme(legend.position = "bottom")+
          geom_text_repel(data=filter(dataset(),year==as.numeric(input$year)),
-                         aes(label=Country),size=3,col="black",alpha=0.75)+
+                         aes(label=Country),size=3,col="black")+
           ggtitle(input$year))->p1
       p1
     }
