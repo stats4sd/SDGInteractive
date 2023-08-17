@@ -49,13 +49,13 @@ ui <- fluidPage(
                                  selected = colnames(africa)[6]),
                      selectInput("y1","Variable on Y axis",choices=colnames(africa)[c(6:22,5,4)],
                                  selected = colnames(africa)[7]),
-                     selectInput("z1","Variable for outer colour",choices=colnames(africa)[c(6:22,5,4)],
+                     selectInput("z1","Variable for outer colour",choices=c("none",colnames(africa)[c(6:22,5,4)]),
                                  selected = colnames(africa)[8]),
-                     selectInput("q1","Variable for inner colour",choices=colnames(africa)[c(6:22,5,4)],
+                     selectInput("q1","Variable for inner colour",choices=c("none",colnames(africa)[c(6:22,5,4)]),
                                  selected = colnames(africa)[9]),
-                     selectInput("r1","Variable for shape",choices=colnames(africa)[c(6:22,5,4)],
+                     selectInput("r1","Variable for shape",choices=c("none",colnames(africa)[c(6:22,5,4)]),
                                  selected = colnames(africa)[10]),
-                     selectInput("s1","Variable for line colour",choices=colnames(africa)[c(6:22,5,4)],
+                     selectInput("s1","Variable for line colour",choices=c("none","no line",colnames(africa)[c(6:22,5,4)]),
                                  selected = colnames(africa)[11]),
                      selectInput("countries1","Select countries",choices=unique(africa$Country),
                                  selected = unique(africa$Country),multiple = TRUE))),  
@@ -66,7 +66,8 @@ ui <- fluidPage(
       conditionalPanel("input.type != '8D' ",
                        plotlyOutput("plot")),
       conditionalPanel("input.type == '8D' ",
-                       plotOutput("plot2")),
+                       plotOutput("plot2"),
+                       checkboxInput("shownames","Show Country Names",value=TRUE)),
     )
   )
 )
@@ -79,13 +80,14 @@ server <- function(input, output,session) {
       gather(year,value,X1990:X2020) %>%
         mutate(year=as.numeric(substr(year,2,5))) %>%
       select(Indicator.Code,value,country=Country.Name,Country.Code,year) %>%
-          spread(Indicator.Code,value)
+          spread(Indicator.Code,value)   
     }
     if(input$type=="Composites"){
  d<-   africa %>% filter(Country%in%input$countries2)
     }
     if(input$type=="8D"){
-      d<-   africa %>% filter(Country%in%input$countries1)
+      d<-   africa %>% filter(Country%in%input$countries1)%>%
+        mutate(none=0) 
     }
     d
     })
@@ -132,14 +134,35 @@ server <- function(input, output,session) {
     if(input$type=="8D"){
    
       (dataset() %>%
-          filter(year<=as.numeric(input$year)) %>%
-          ggplot(aes_string(y=input$y1,
-                            x=input$x1,
-                            fill=input$q1,year="year"))+
-          geom_line(aes_string(group="Country",colour=input$s1),alpha=0.5)+
+               filter(year<=as.numeric(input$year)) %>%
+                 ggplot(aes_string(y=input$y1,
+                            x=input$x1,year="year"))+
+         theme_light()+
+         theme(legend.position = "bottom")+
+         ggtitle(input$year)+
+         xlab(input$x1)+
+         ylab(input$y1))->p1
+      
+      if(input$s1!="none" & input$s1!="no line"){
+         p1<-p1+ geom_line(aes_string(group="Country",colour=input$s1),alpha=0.5)+
           scale_color_fermenter(palette="RdYlGn",limits=c(0,100))+
-          labs(colour=input$s1)+
-          new_scale_colour() +
+          labs(colour=input$s1)+new_scale_colour()}
+      
+      if(input$s1=="none"){
+        p1<-p1+ geom_line(aes_string(group="Country"),alpha=0.2,col="gray50")
+        }
+         
+      
+      if(input$q1!="none"){
+        p1<-p1+
+          geom_point(data=filter(dataset(),year==as.numeric(input$year)),
+                     aes_string(fill=input$q1),
+                     shape=21,size=5,alpha=0.8,stroke=0,col=alpha("white",0))+
+          scale_fill_fermenter(palette = "Reds",direction = 1,limits=c(0,100))
+      }
+      
+      if(input$z1!="none"){
+        p1<-p1+
           geom_point(data=filter(dataset(),year==as.numeric(input$year)),
                      aes_string(col=input$z1),
                      shape=21,size=5,alpha=0.8,stroke=3)+
@@ -147,20 +170,27 @@ server <- function(input, output,session) {
                      shape=1,size=8,alpha=0.5,col="black",stroke=0.25)+
           geom_point(data=filter(dataset(),year==as.numeric(input$year)),
                      shape=1,size=4,alpha=0.5,col="black",stroke=0.25)+
+          scale_color_fermenter(palette= "Blues" ,direction=1,limits=c(0,100))+
+          labs(colour=input$z1)}
+      
+
+      if(input$r1!="none"){
+        p1<-p1+
           geom_point(data=filter(dataset(),year==as.numeric(input$year)),
                      aes_string(shape=input$r1),col="gray30",size=2)+
-          scale_color_fermenter(palette= "Blues" ,direction=1,limits=c(0,100))+
-          labs(colour=input$z1)+
-          xlab(input$x1)+
-          ylab(input$y1)+
-          scale_shape_binned(limits=c(0,100),breaks=seq(0,100,by=20))+
-          scale_fill_fermenter(palette = "Reds",direction = 1,limits=c(0,100))+
-          theme_light()+
-          theme(legend.position = "bottom")+
-         geom_text_repel(data=filter(dataset(),year==as.numeric(input$year)),
-                         aes(label=Country),size=3,col="black")+
-          ggtitle(input$year))->p1
-      p1
+          scale_shape_binned(limits=c(0,100),breaks=seq(0,100,by=20))
+      }
+      if(input$r1=="none" & input$q1=="none" & input$z1=="none"){
+        p1<-p1+
+          geom_point(data=filter(dataset(),year==as.numeric(input$year)))
+      }
+      
+      if(input$shownames==TRUE){
+    p1<- p1+
+       geom_text_repel(data=filter(dataset(),year==as.numeric(input$year)),
+                       aes(label=Country),size=3,col="black")
+      }
+     p1
     }
     
  
