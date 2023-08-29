@@ -8,7 +8,7 @@ library(ggrepel)
 SDGs<-read.csv("SDGSeries.csv")
 Fulldata<-read.csv("SDGData.csv")
 Countries<-read.csv("SDGCountry.csv")
-Countries<-filter(Countries,Region=="Sub-Saharan Africa")
+Countries<-filter(Countries)
 
 all<-read_excel("SDR2023-data.xlsx", "Backdated SDG Index", .name_repair = "universal") %>% 
   select(1:22) %>% 
@@ -18,11 +18,7 @@ country<-read_csv("iso3 country codes.csv", name_repair = "universal") %>%
   rename(country.3=alpha.3)
 
 ##filter to give data for sub-saharan africa
-africa<- all %>% left_join(country, by="country.3") %>% 
-  filter(sub.region=="Sub-Saharan Africa")
-
-
-
+africa<- all %>% left_join(country, by="country.3") %>% inner_join(Countries,by=c("country.3"="Country.Code"))
 
 ui <- fluidPage(
   titlePanel("Pairwise SDG Plot"),
@@ -57,8 +53,24 @@ ui <- fluidPage(
                                  selected = colnames(africa)[10]),
                      selectInput("s1","Variable for line colour",choices=c("none","no line",colnames(africa)[c(6:22,5,4)]),
                                  selected = colnames(africa)[11]),
+                     selectInput("t1","Variable for size",choices=c("none",colnames(africa)[c(6:22,5,4)]),
+                                 selected = "none"),
+                     selectInput("method","Select Points by:",choices=c("Country","Region","Sub-region","Income"),
+                                 selected = "none"),
+                     conditionalPanel("input.method == 'Country'",
                      selectInput("countries1","Select countries",choices=unique(africa$Country),
-                                 selected = unique(africa$Country),multiple = TRUE))),  
+                                 selected = unique(africa$Country),multiple = TRUE)),
+                     conditionalPanel("input.method == 'Region'",
+                                      selectInput("regions1","Select countries",choices=unique(africa$Region),
+                                                  selected = unique(africa$Region),multiple = TRUE)),
+                     conditionalPanel("input.method == 'Sub-region'",
+                                      selectInput("sub1","Select countries",choices=unique(africa$sub.region),
+                                                  selected = unique(africa$sub.region),multiple = TRUE)),
+                     conditionalPanel("input.method == 'Income'",
+                                      selectInput("income1","Select countries",choices=unique(africa$Income.Group),
+                                                  selected = unique(africa$Income.Group),multiple = TRUE))
+                     
+                     )),  
 
         # Show a plot of the generated distribution
     mainPanel(
@@ -83,11 +95,27 @@ server <- function(input, output,session) {
           spread(Indicator.Code,value)   
     }
     if(input$type=="Composites"){
- d<-   africa %>% filter(Country%in%input$countries2)
+ 
+ d<-   africa %>% filter(Country%in%input$countries2 )
+
     }
     if(input$type=="8D"){
+      if(input$method=="Country"){
       d<-   africa %>% filter(Country%in%input$countries1)%>%
         mutate(none=0) 
+      }
+      if(input$method=="Region"){
+        d<-   africa %>% filter(Region%in%input$regions1)%>%
+          mutate(none=0) 
+      }
+      if(input$method=="Sub-region"){
+        d<-   africa %>% filter(sub.region%in%input$sub1)%>%
+          mutate(none=0) 
+      }
+      if(input$method=="Income"){
+        d<-   africa %>% filter(Income.Group%in%input$income1)%>%
+          mutate(none=0) 
+      }
     }
     d
     })
@@ -132,9 +160,10 @@ server <- function(input, output,session) {
   output$plot2 <- renderPlot({
 
     if(input$type=="8D"){
-   
-      (dataset() %>%
+      
+     (dataset() %>%
                filter(year<=as.numeric(input$year)) %>%
+         mutate(none=1) %>%
                  ggplot(aes_string(y=input$y1,
                             x=input$x1,year="year"))+
          theme_light()+
@@ -156,20 +185,22 @@ server <- function(input, output,session) {
       if(input$q1!="none"){
         p1<-p1+
           geom_point(data=filter(dataset(),year==as.numeric(input$year)),
-                     aes_string(fill=input$q1),
-                     shape=21,size=5,alpha=0.8,stroke=0,col=alpha("white",0))+
+                     aes_string(fill=input$q1,size=input$t1),
+                     shape=21,alpha=0.8,stroke=0,col=scales::alpha("white",0))+
           scale_fill_fermenter(palette = "Reds",direction = 1,limits=c(0,100))
       }
       
       if(input$z1!="none"){
         p1<-p1+
           geom_point(data=filter(dataset(),year==as.numeric(input$year)),
-                     aes_string(col=input$z1),
-                     shape=21,size=5,alpha=0.8,stroke=3)+
+                     aes_string(col=input$z1,size=input$t1),
+                     shape=21,alpha=0.8,stroke=3)+
           geom_point(data=filter(dataset(),year==as.numeric(input$year)),
-                     shape=1,size=8,alpha=0.5,col="black",stroke=0.25)+
+                     aes_string(size=input$t1),
+                     shape=1,alpha=0.5,col="black",stroke=0.25)+
           geom_point(data=filter(dataset(),year==as.numeric(input$year)),
-                     shape=1,size=4,alpha=0.5,col="black",stroke=0.25)+
+                     aes_string(size=input$t1),
+                     shape=1,alpha=0.5,col="black",stroke=0.25)+
           scale_color_fermenter(palette= "Blues" ,direction=1,limits=c(0,100))+
           labs(colour=input$z1)}
       
@@ -182,8 +213,11 @@ server <- function(input, output,session) {
       }
       if(input$r1=="none" & input$q1=="none" & input$z1=="none"){
         p1<-p1+
-          geom_point(data=filter(dataset(),year==as.numeric(input$year)))
+          geom_point(data=filter(dataset(),year==as.numeric(input$year)),
+                     aes_string(input$t1))
       }
+      
+ 
       
       if(input$shownames==TRUE){
     p1<- p1+
