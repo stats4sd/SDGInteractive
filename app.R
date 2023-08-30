@@ -94,7 +94,7 @@ ui <- fluidPage(
       conditionalPanel("input.type != '8D' ",
                        plotlyOutput("plot")),
       conditionalPanel("input.type == '8D' ",
-                       plotOutput("plot2"),
+                       plotOutput("plot2",width = "100%",height="600px"),
                        checkboxInput("shownames","Show Country Names",value=TRUE)),
     )
   )
