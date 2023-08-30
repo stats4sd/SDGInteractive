@@ -1,79 +1,95 @@
 library(tidyverse)
 library(shiny)
 library(plotly)
-library(readxl)
 library(ggnewscale)
 library(ggrepel)
+library(shinyWidgets)
 
-SDGs<-read.csv("SDGSeries.csv")
-Fulldata<-read.csv("SDGData.csv")
-Countries<-read.csv("SDGCountry.csv")
-Countries<-filter(Countries)
+shinydata<-readRDS(file="shinydata.RDS")
 
-all<-read_excel("SDR2023-data.xlsx", "Backdated SDG Index", .name_repair = "universal") %>% 
-  select(1:22) %>% 
-  rename(country.3=Country.Code.ISO3)
-##read country codes with regions
-country<-read_csv("iso3 country codes.csv", name_repair = "universal") %>% 
-  rename(country.3=alpha.3)
+choices_list<-c("none",shinydata$SDGNames$Var,
+                 "region","sub.region","Income.Group",
+                 "SDG.Index.Score","population",
+                 shinydata$codes$IndCode)
 
-##filter to give data for sub-saharan africa
-africa<- all %>% left_join(country, by="country.3") %>% inner_join(Countries,by=c("country.3"="Country.Code"))
+names(choices_list)<-c("None", shinydata$SDGNames$Name,"Region","Sub-region","Income Group",
+                       "SDG Index Score","Population",
+                        shinydata$codes$name)
 
+choices_list2<-c("none","no line",shinydata$SDGNames$Var,
+          "region","sub.region","Income.Group",
+          "SDG.Index.Score","population",
+          shinydata$codes$IndCode)
+
+names(choices_list2)<-c("Static Colour","Remove Line",  shinydata$SDGNames$Name,
+                        "Region","Sub-region","Income Group",
+                     "SDG Index Score","Population",
+                       shinydata$codes$name)
+
+  
 ui <- fluidPage(
+  tags$head(tags$style(HTML("
+        .selectize-input, .selectize-dropdown {
+          font-size: 75%;
+        }
+        "))),
+  
   titlePanel("Pairwise SDG Plot"),
  
   sidebarLayout(
-    sidebarPanel(
-      selectInput("type","Plot Type",choices=c("Composites","Underlying Indicators","8D")),
-      conditionalPanel("input.type == 'Composites'",
-                       selectInput("x2","Variable on X axis",choices=colnames(africa)[c(6:22,5,4)],
-                                   selected = colnames(africa)[6]),
-                       selectInput("y2","Variable on Y axis",choices=colnames(africa)[c(6:22,5,4)],
-                                   selected = colnames(africa)[7]),
-                       selectInput("countries2","Select countries",choices=Countries$Short.Name,
-                                   selected = Countries$Short.Name,multiple = TRUE))
-    ,     
-    conditionalPanel("input.type == 'Underlying Indicators'",
-      selectInput("x","Variable on X axis",choices=SDGs$Indicator.Name,selected = SDGs$Indicator.Name[382]),
-      selectInput("y","Variable on Y axis",choices=SDGs$Indicator.Name,selected = SDGs$Indicator.Name[3]),
-      selectInput("countries","Select countries",choices=Countries$Short.Name,
-                  selected = Countries$Short.Name,multiple = TRUE))
-    ,
+    sidebarPanel( width = 3,
+      selectInput("type","Plot Type",choices=c("Pairwise - Interactive"="Composites","7D - Static"="8D")),
+      selectInput("x","Variable on X axis",choices=choices_list[!names(choices_list)%in%c("None","Region","Sub-region","Income Group")],
+                  selected = shinydata$SDGNames$Var[1]),
+      selectInput("y","Variable on Y axis",choices=choices_list[!names(choices_list)%in%c("None","Region","Sub-region","Income Group")],
+                                 selected = shinydata$SDGNames$Var[2]),
+      selectInput("size","Variable for size",choices=choices_list,
+                  selected = "population"),
+      selectInput("colour1","Variable for point colour",choices=choices_list,
+                           selected = "region"),
+
     conditionalPanel("input.type == '8D'",
-                     selectInput("x1","Variable on X axis",choices=colnames(africa)[c(6:22,5,4)],
-                                 selected = colnames(africa)[6]),
-                     selectInput("y1","Variable on Y axis",choices=colnames(africa)[c(6:22,5,4)],
-                                 selected = colnames(africa)[7]),
-                     selectInput("z1","Variable for outer colour",choices=c("none",colnames(africa)[c(6:22,5,4)]),
-                                 selected = colnames(africa)[8]),
-                     selectInput("q1","Variable for inner colour",choices=c("none",colnames(africa)[c(6:22,5,4)]),
-                                 selected = colnames(africa)[9]),
-                     selectInput("r1","Variable for shape",choices=c("none",colnames(africa)[c(6:22,5,4)]),
-                                 selected = colnames(africa)[10]),
-                     selectInput("s1","Variable for line colour",choices=c("none","no line",colnames(africa)[c(6:22,5,4)]),
-                                 selected = colnames(africa)[11]),
-                     selectInput("t1","Variable for size",choices=c("none",colnames(africa)[c(6:22,5,4)]),
-                                 selected = "none"),
-                     selectInput("method","Select Points by:",choices=c("Country","Region","Sub-region","Income"),
-                                 selected = "none"),
-                     conditionalPanel("input.method == 'Country'",
-                     selectInput("countries1","Select countries",choices=unique(africa$Country),
-                                 selected = unique(africa$Country),multiple = TRUE)),
-                     conditionalPanel("input.method == 'Region'",
-                                      selectInput("regions1","Select countries",choices=unique(africa$Region),
-                                                  selected = unique(africa$Region),multiple = TRUE)),
-                     conditionalPanel("input.method == 'Sub-region'",
-                                      selectInput("sub1","Select countries",choices=unique(africa$sub.region),
-                                                  selected = unique(africa$sub.region),multiple = TRUE)),
-                     conditionalPanel("input.method == 'Income'",
-                                      selectInput("income1","Select countries",choices=unique(africa$Income.Group),
-                                                  selected = unique(africa$Income.Group),multiple = TRUE))
-                     
-                     )),  
+                     selectInput("colour2","Variable for outer colour",choices=choices_list,
+                                          selected = "none"),
+                     selectInput("shape","Variable for shape",choices=choices_list,
+                                          selected = "none"),
+                                
+                     selectInput("colour_line","Variable for line colour",choices=choices_list2,
+                                          selected = "none"),
+                     ),
+    selectInput("method","Select Points by:",choices=c("Country","Region","Sub-region","Income"),multiple = TRUE),
+    conditionalPanel("input.method.indexOf('Country') > -1",
+                     multiInput("countries","Select countries",choices=unique(shinydata$full_data$Country.x),
+                                 selected = unique(shinydata$full_data$Country.x),options = list(
+                                   enable_search = TRUE,
+                                   non_selected_header = "Excluded",
+                                   selected_header = "Included"
+                                 )) ),
+    conditionalPanel("input.method.indexOf('Region') > -1",
+                     multiInput("regions","Select regions",choices=unique(shinydata$full_data$Region),
+                                 selected = unique(shinydata$full_data$Region),options = list(
+                                   enable_search = FALSE,
+                                   non_selected_header = "Excluded",
+                                   selected_header = "Included"
+                                 ))),
+    conditionalPanel("input.method.indexOf('Sub-region') > -1",
+                     multiInput("sub","Select sub-regions",choices=unique(shinydata$full_data$sub.region),
+                                 selected = unique(shinydata$full_data$sub.region),options = list(
+                                   enable_search = FALSE,
+                                   non_selected_header = "Excluded",
+                                   selected_header = "Included"
+                                 ))),
+    conditionalPanel("input.method.indexOf('Income') > -1",
+                     multiInput("income","Select income groupings",choices=unique(shinydata$full_data$Income.Group),
+                                 selected = unique(shinydata$full_data$Income.Group),options = list(
+                                   enable_search = FALSE,
+                                   non_selected_header = "Excluded",
+                                   selected_header = "Included"
+                                 )))
+    ),  
 
         # Show a plot of the generated distribution
-    mainPanel(
+    mainPanel( width = 9,
       sliderInput("year","Year",min=2000,max=2022,step=1,value=2000,sep = ""),
       conditionalPanel("input.type != '8D' ",
                        plotlyOutput("plot")),
@@ -87,142 +103,134 @@ ui <- fluidPage(
 server <- function(input, output,session) {
 
   dataset<-reactive({
-    if(input$type=="Underlying Indicators"){
-    d<-Fulldata %>% filter(Country.Name%in%input$countries & Indicator.Name%in%c(input$x,input$y)) %>%
-      gather(year,value,X1990:X2020) %>%
-        mutate(year=as.numeric(substr(year,2,5))) %>%
-      select(Indicator.Code,value,country=Country.Name,Country.Code,year) %>%
-          spread(Indicator.Code,value)   
+    d<-   shinydata$full_data %>% mutate(none=1)
+      if("Country" %in% input$method){
+        d<-    d  %>% filter(Country.x%in%input$countries )
+      }
+      if("Region" %in% input$method){
+        d<-    d  %>%  filter(Region%in%input$regions )
+      }
+      if("Income" %in% input$method){
+        d<-   d %>% filter(Income.Group%in%input$income )
+      }
+    if("Sub-region" %in% input$method){
+      d<-   d %>% filter(sub.region%in%input$sub )
     }
-    if(input$type=="Composites"){
- 
- d<-   africa %>% filter(Country%in%input$countries2 )
-
-    }
-    if(input$type=="8D"){
-      if(input$method=="Country"){
-      d<-   africa %>% filter(Country%in%input$countries1)%>%
-        mutate(none=0) 
-      }
-      if(input$method=="Region"){
-        d<-   africa %>% filter(Region%in%input$regions1)%>%
-          mutate(none=0) 
-      }
-      if(input$method=="Sub-region"){
-        d<-   africa %>% filter(sub.region%in%input$sub1)%>%
-          mutate(none=0) 
-      }
-      if(input$method=="Income"){
-        d<-   africa %>% filter(Income.Group%in%input$income1)%>%
-          mutate(none=0) 
-      }
-    }
-    d
+    d %>%
+    select(year,Country.x,country.3,input$x,input$y,input$colour1,input$colour2,input$shape,input$colour_line,input$size) %>%
+      na.omit() 
     })
 
-  output$plot <- renderPlotly({
-    if(input$type=="Underlying Indicators"){
 
-    (dataset() %>%
+  
+  output$plot <- renderPlotly({
+    updateSliderInput(inputId="year",min=min(dataset()$year),max=max(dataset()$year))
+  if(input$type=="Composites"){
+
+     (dataset() %>%
        filter(year<=as.numeric(input$year)) %>%
-        ggplot(aes_string(y=SDGs$Series.Code[SDGs$Indicator.Name==input$y],
-                      x=SDGs$Series.Code[SDGs$Indicator.Name==input$x],
-                      col="country",year="year"))+
-        geom_line(show.legend=FALSE,aes(group=country),alpha=0.2)+
-        geom_point(data=filter(dataset(),year==as.numeric(input$year)),shape=1,size=4,alpha=1)+
+        ggplot(aes_string(y=input$y,
+                      x=input$x,
+                      col=input$colour1,
+                      size=input$size,
+                      Country="Country.x",
+                      year="year"))+
+        geom_line(show.legend=FALSE,aes(group=Country.x),alpha=0.2,size=0.5)+
+        geom_point(data=filter(dataset(),year==as.numeric(input$year)),alpha=1)+
           xlab(input$x)+
         ylab(input$y)+
         theme_light()+
         theme(legend.position = "bottom")+
         ggtitle(input$year))->p1
-      }
-    if(input$type=="Composites"){
-    
-       (dataset() %>%
-          filter(year<=as.numeric(input$year)) %>%
-          ggplot(aes_string(y=input$y2,
-                            x=input$x2, col="Country",
-                            year="year"))+
-         geom_line(show.legend=FALSE,aes(group=Country),alpha=0.4)+
-          geom_point(data=filter(dataset(),year==as.numeric(input$year)),
-                     shape=21,size=3,alpha=1)+
-          xlab(input$x2)+
-          ylab(input$y2)+
-          theme_light()+
-            theme(legend.position = "bottom")+
-          ggtitle(input$year))->p1
-    }
-    if(input$type!="8D"){
+
     p1 %>% ggplotly()
     }
   })
   
   output$plot2 <- renderPlot({
-
+    updateSliderInput(inputId="year",min=min(dataset()$year),max=max(dataset()$year))
     if(input$type=="8D"){
       
      (dataset() %>%
                filter(year<=as.numeric(input$year)) %>%
-         mutate(none=1) %>%
-                 ggplot(aes_string(y=input$y1,
-                            x=input$x1,year="year"))+
+                 ggplot(aes_string(y=input$y,
+                            x=input$x,year="year"))+
          theme_light()+
          theme(legend.position = "bottom")+
          ggtitle(input$year)+
-         xlab(input$x1)+
-         ylab(input$y1))->p1
+         xlab(input$x)+
+         ylab(input$y))->p1
       
-      if(input$s1!="none" & input$s1!="no line"){
-         p1<-p1+ geom_line(aes_string(group="Country",colour=input$s1),alpha=0.5)+
-          scale_color_fermenter(palette="RdYlGn",limits=c(0,100))+
-          labs(colour=input$s1)+new_scale_colour()}
+      if(input$colour_line!="none" & input$colour_line!="no line"){
+        
+        if(class(dataset()[[input$colour_line]])=="numeric"|class(dataset()[[input$colour_line]])=="integer"|
+           class(dataset()[[input$colour_line]])=="double"){
+          c1<-scale_color_fermenter(palette="RdYlGn")
+        }else{
+          c1<-scale_color_brewer(palette="Greens")
+        }
+        
+         p1<-p1+ geom_line(aes_string(group="Country.x",colour=input$colour_line),alpha=0.5)+
+          c1+
+          labs(colour=input$colour_line)+new_scale_colour()}
       
-      if(input$s1=="none"){
-        p1<-p1+ geom_line(aes_string(group="Country"),alpha=0.2,col="gray50")
+      if(input$colour_line=="none"){
+        p1<-p1+ geom_line(aes_string(group="Country.x"),col="gray50",alpha=0.2)
         }
          
       
-      if(input$q1!="none"){
+      if(input$colour1!="none"){
+        if(class(dataset()[[input$colour1]])=="numeric"|class(dataset()[[input$colour1]])=="integer"|
+           class(dataset()[[input$colour1]])=="double"){
+          c2<-scale_fill_fermenter(palette = "Reds",direction = 1)
+    
+        }else{
+          c2<-scale_fill_brewer(palette = "Reds",direction = 1)
+        }
+        
+        
         p1<-p1+
           geom_point(data=filter(dataset(),year==as.numeric(input$year)),
-                     aes_string(fill=input$q1,size=input$t1),
-                     shape=21,alpha=0.8,stroke=0,col=scales::alpha("white",0))+
-          scale_fill_fermenter(palette = "Reds",direction = 1,limits=c(0,100))
+                     aes_string(fill=input$colour1,size=input$size),
+                     shape=21,alpha=0.8,stroke=0.2,col="black")+
+          c2
       }
       
-      if(input$z1!="none"){
+      if(input$colour2!="none"){
+        
+            if(class(dataset()[[input$colour2]])=="numeric"|class(dataset()[[input$colour2]])=="integer"|
+             class(dataset()[[input$colour2]])=="double"){
+            c3<-scale_colour_fermenter(palette = "Blues",direction = 1)
+            
+          }else{
+            c3<-scale_fill_brewer(palette="Blues",direction = 1)
+          }
+        
         p1<-p1+
           geom_point(data=filter(dataset(),year==as.numeric(input$year)),
-                     aes_string(col=input$z1,size=input$t1),
+                     aes_string(col=input$colour2,size=input$size),
                      shape=21,alpha=0.8,stroke=3)+
           geom_point(data=filter(dataset(),year==as.numeric(input$year)),
-                     aes_string(size=input$t1),
+                     aes_string(size=input$size),
                      shape=1,alpha=0.5,col="black",stroke=0.25)+
           geom_point(data=filter(dataset(),year==as.numeric(input$year)),
-                     aes_string(size=input$t1),
+                     aes_string(size=input$size),
                      shape=1,alpha=0.5,col="black",stroke=0.25)+
-          scale_color_fermenter(palette= "Blues" ,direction=1,limits=c(0,100))+
-          labs(colour=input$z1)}
+          c3+
+          labs(colour=input$colour2)
+        }
       
 
-      if(input$r1!="none"){
+      if(input$shape!="none"){
         p1<-p1+
           geom_point(data=filter(dataset(),year==as.numeric(input$year)),
-                     aes_string(shape=input$r1),col="gray30",size=2)+
+                     aes_string(shape=input$shape),col="gray30",size=2)+
           scale_shape_binned(limits=c(0,100),breaks=seq(0,100,by=20))
       }
-      if(input$r1=="none" & input$q1=="none" & input$z1=="none"){
-        p1<-p1+
-          geom_point(data=filter(dataset(),year==as.numeric(input$year)),
-                     aes_string(input$t1))
-      }
-      
- 
-      
-      if(input$shownames==TRUE){
+    if(input$shownames==TRUE){
     p1<- p1+
        geom_text_repel(data=filter(dataset(),year==as.numeric(input$year)),
-                       aes(label=Country),size=3,col="black")
+                       aes(label=country.3),size=3,col="black")
       }
      p1
     }
