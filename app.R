@@ -147,7 +147,7 @@ server <- function(input, output,session) {
     }
   })
   
-  output$plot2 <- renderPlot({
+  output$plot2 <- renderPlot(res=144,{
     updateSliderInput(inputId="year",min=min(dataset()$year),max=max(dataset()$year))
     if(input$type=="8D"){
       
@@ -230,7 +230,8 @@ server <- function(input, output,session) {
     if(input$shownames==TRUE){
     p1<- p1+
        geom_text_repel(data=filter(dataset(),year==as.numeric(input$year)),
-                       aes(label=country.3),size=3,col="black")
+                       aes(label=country.3),size=2,col="black"
+                        )
       }
      p1
     }
