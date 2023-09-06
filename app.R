@@ -39,6 +39,9 @@ names(choices_list2)<-c("Static Colour","Remove Line",  shinydata$SDGNames$Name,
 
 
 ui <- fluidPage(
+  tags$style(type="text/css",
+             ".recalculating {opacity: 1.0;}"
+  ),
   tags$head(tags$style(HTML("
         .selectize-input, .selectize-dropdown {
           font-size: 80%;
