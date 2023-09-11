@@ -12,14 +12,10 @@ shinydata$full_data$`no line` <- ""
 source('prepare_choice_lists.R')
 
 ui <- fluidPage(
-  tags$style(type = "text/css",
-             ".recalculating {opacity: 1.0;}"),
-  tags$head(tags$style(
-    HTML("
-        .selectize-input, .selectize-dropdown {
-          font-size: 80%;
-        }")
-  )),
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "app.css")
+  ),
+  
   
   titlePanel("SDG Explorer"),
   
