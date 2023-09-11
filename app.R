@@ -6,74 +6,10 @@ library(ggrepel)
 library(shinyWidgets)
 library(RColorBrewer)
 
-shinydata <- readRDS(file = "shinydata.RDS")
+shinydata<-readRDS(file="shinydata.RDS")
 shinydata$full_data$`no line` <- ""
 
-choices_list <- c(
-  "none",
-  shinydata$SDGNames$Var,
-  "Region",
-  "sub.region",
-  "Income.Group",
-  "SDG.Index.Score",
-  "population",
-  shinydata$codes$IndCode
-)
-
-names(choices_list) <-
-  c(
-    "None",
-    shinydata$SDGNames$Name,
-    "Region",
-    "Sub-region",
-    "Income Group",
-    "SDG Index Score",
-    "Population",
-    shinydata$codes$name
-  )
-
-choices_list_x <- c(
-  "year",
-  shinydata$SDGNames$Var,
-  "SDG.Index.Score",
-  "population",
-  shinydata$codes$IndCode
-)
-
-names(choices_list_x) <- c(
-  "Year",
-  shinydata$SDGNames$Name,
-  "SDG Index Score",
-  "Population",
-  shinydata$codes$name
-)
-
-choices_list2 <- c(
-  "none",
-  "no line",
-  shinydata$SDGNames$Var,
-  "Region",
-  "sub.region",
-  "Income.Group",
-  "SDG.Index.Score",
-  "population",
-  shinydata$codes$IndCode
-)
-
-names(choices_list2) <-
-  c(
-    "Static Colour",
-    "Remove Line",
-    shinydata$SDGNames$Name,
-    "Region",
-    "Sub-region",
-    "Income Group",
-    "SDG Index Score",
-    "Population",
-    shinydata$codes$name
-  )
-
-
+source('prepare_choice_lists.R')
 
 ui <- fluidPage(
   tags$style(type = "text/css",
@@ -155,7 +91,7 @@ ui <- fluidPage(
         selectInput(
           "colour_line",
           "Variable for line colour",
-          choices = choices_list2,
+          choices = choices_list_line,
           selected = "none"
         ),
       ),
@@ -637,12 +573,12 @@ server <- function(input, output, session) {
                         input$delta_x == 1,
                         paste(
                           "Change in",
-                          names(choices_list2)[choices_list2 == input$x],
+                          names(choices_list_line)[choices_list_line == input$x],
                           input$baseline_year,
                           "to",
                           input$year
                         ),
-                        names(choices_list2)[choices_list2 ==
+                        names(choices_list_line)[choices_list_line ==
                                                input$x]
                       ))
       ylab1 <-
@@ -650,12 +586,12 @@ server <- function(input, output, session) {
           input$delta_y == 1,
           paste(
             "Change in",
-            names(choices_list2)[choices_list2 == input$y],
+            names(choices_list_line)[choices_list_line == input$y],
             input$baseline_year,
             "to",
             input$year
           ),
-          names(choices_list2)[choices_list2 == input$y]
+          names(choices_list_line)[choices_list_line == input$y]
         )
       
       
@@ -696,7 +632,7 @@ server <- function(input, output, session) {
             title = element_text(size = 8),
             legend.text = element_text(size = 6)
           ) +
-          labs(col = names(choices_list2)[choices_list2 == input$colour1],
+          labs(col = names(choices_list_line)[choices_list_line == input$colour1],
                size = "") +
           ggtitle(str_wrap(paste(
             xlab1, "vs", ylab1
@@ -752,23 +688,23 @@ server <- function(input, output, session) {
                         input$delta_x == 1,
                         paste(
                           "Change in",
-                          names(choices_list2)[choices_list2 == input$x],
+                          names(choices_list_line)[choices_list_line == input$x],
                           input$baseline_year,
                           "to",
                           input$year
                         ),
-                        names(choices_list2)[choices_list2 == input$x]
+                        names(choices_list_line)[choices_list_line == input$x]
                       ))
       ylab1 <- ifelse(
         input$delta_y == 1,
         paste(
           "Change in",
-          names(choices_list2)[choices_list2 == input$y],
+          names(choices_list_line)[choices_list_line == input$y],
           input$baseline_year,
           "to",
           input$year
         ),
-        names(choices_list2)[choices_list2 == input$y]
+        names(choices_list_line)[choices_list_line == input$y]
       )
       
       
@@ -822,7 +758,7 @@ server <- function(input, output, session) {
         p1 <-
           p1 + geom_line(aes(group = Country, colour = colour_line), alpha = 0.5) +
           c1 +
-          labs(colour = names(choices_list2)[choices_list2 == input$colour_line]) +
+          labs(colour = names(choices_list_line)[choices_list_line == input$colour_line]) +
           new_scale_colour()
       }
       
@@ -858,7 +794,7 @@ server <- function(input, output, session) {
             col = "black"
           ) +
           c2 +
-          labs(fill = names(choices_list2)[choices_list2 == input$colour1])
+          labs(fill = names(choices_list_line)[choices_list_line == input$colour1])
       }
       
       if (input$colour2 != "none") {
@@ -901,7 +837,7 @@ server <- function(input, output, session) {
             stroke = 0.25
           ) +
           c3 +
-          labs(colour = names(choices_list2)[choices_list2 == input$colour2])
+          labs(colour = names(choices_list_line)[choices_list_line == input$colour2])
       }
       
       
@@ -915,11 +851,11 @@ server <- function(input, output, session) {
           ) +
           scale_shape_binned(limits = c(0, 100),
                              breaks = seq(0, 100, by = 20)) +
-          labs(shape = names(choices_list2)[choices_list2 == input$shape])
+          labs(shape = names(choices_list_line)[choices_list_line == input$shape])
       }
       if (input$size != "none") {
         p1 <- p1 +
-          labs(size = names(choices_list2)[choices_list2 == input$size])
+          labs(size = names(choices_list_line)[choices_list_line == input$size])
       }
       
       if (input$shownames == TRUE) {
