@@ -6,7 +6,7 @@ library(ggrepel)
 library(shinyWidgets)
 library(RColorBrewer)
 
-shinydata<-readRDS(file="shinydata.RDS")
+shinydata <- readRDS(file = "shinydata.RDS")
 shinydata$full_data$`no line` <- ""
 
 source('prepare_choice_lists.R')
@@ -29,27 +29,30 @@ ui <- fluidPage(
       selectInput(
         "type",
         "Plot Type",
-        choices = c("Pairwise - Interactive" = "Composites", "7D - Static" = "8D")
+        choices = plot_types
       ),
+      
       selectInput(
         "x",
         "Variable on X axis",
         choices = choices_list_x,
         selected = shinydata$SDGNames$Var[1]
       ),
-      conditionalPanel(
-        "input.y != 'Year'",
-        checkboxInput("delta_x", "Plot change in x?", value = FALSE)
-      ),
+      
+      checkboxInput("delta_x", "Plot change in x?", value = FALSE),
+      
       selectInput(
         "y",
         "Variable on Y axis",
         choices = choices_list[!names(choices_list) %in% c("None", "Region", "Sub-region", "Income Group")],
         selected = shinydata$SDGNames$Var[2]
       ),
+      
       checkboxInput("delta_y", "Plot change in y?", value = FALSE),
+      
       conditionalPanel(
         "input.delta_x == '1' || input.delta_y == '1'",
+        
         sliderInput(
           "baseline_year",
           "Year to set as baseline for change",
@@ -60,12 +63,14 @@ ui <- fluidPage(
           sep = ""
         )
       ),
+      
       selectInput(
         "size",
         "Variable for size",
         choices = choices_list,
         selected = "population"
       ),
+      
       selectInput(
         "colour1",
         "Variable for point colour",
@@ -73,14 +78,17 @@ ui <- fluidPage(
         selected = "Region"
       ),
       
+      # Extra Pairwise options
       conditionalPanel(
         "input.type == '8D'",
+        
         selectInput(
           "colour2",
           "Variable for outer colour",
           choices = choices_list,
           selected = "none"
         ),
+        
         selectInput(
           "shape",
           "Variable for shape",
@@ -95,12 +103,16 @@ ui <- fluidPage(
           selected = "none"
         ),
       ),
+      
+      ## Select Points by
       selectInput(
         "method",
         "Select Points by:",
         choices = c("Country", "Region", "Sub-region", "Income"),
         multiple = TRUE
       ),
+      
+    
       conditionalPanel(
         "input.method.indexOf('Country') > -1",
         multiInput(
@@ -113,7 +125,7 @@ ui <- fluidPage(
             non_selected_header = "Excluded",
             selected_header = "Included"
           )
-        ) ,
+        ),
         actionButton("all_country", label = "Select All Countries"),
         actionButton("no_country", label = "Deselect All Countries")
       ),
@@ -167,10 +179,11 @@ ui <- fluidPage(
       )
     ),
     
-    # Show a plot of the generated distribution
     mainPanel(
       width = 9,
+      
       htmlOutput("TopText"),
+      
       fluidRow(
         column(
           sliderInput(
@@ -185,23 +198,34 @@ ui <- fluidPage(
           width = 5
         ),
         
-        column(checkboxInput("play", "Play"), width = 1),
-        column(checkboxInput("restart", "Restart"), width =
-                 1)
+        column(actionButton("play", "Play"), width = 1),
+        column(actionButton("restart", "Reset"), width = 1)
       ),
-      conditionalPanel("input.type != '8D' ",
-                       plotlyOutput("plot")),
-      conditionalPanel(
-        "input.type == '8D' ",
-        plotOutput("plot2", width = "100%", height =
-                     "620px"),
-        checkboxInput("shownames", "Show Country Names", value =
-                        TRUE)
+      
+      conditionalPanel("input.type != '8D' ", 
+        plotlyOutput("plot")
       ),
+      
+      conditionalPanel("input.type == '8D' ",
+        
+        plotOutput(
+          "plot2", 
+           width = "100%", 
+           height = "620px"
+          ),
+        
+        checkboxInput(
+          "shownames", 
+          "Show Country Names", 
+          value = TRUE
+        )
+      ),
+      
       htmlOutput("BottomText"),
     )
   )
 )
+
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
   output$TopText <- renderText(
@@ -548,7 +572,40 @@ server <- function(input, output, session) {
                      selected = "")
   })
   
+  ## Play through the years
+  timelineFlow <- reactiveValues(
+    playing = FALSE,
+    current_year = NULL,
+  )
   
+  
+  observeEvent(input$year, {
+    timelineFlow$current_year = input$year
+  })
+  
+  
+  observeEvent(input$play, {
+    timelineFlow$playing <- TRUE
+  })
+  
+  observeEvent(input$restart, {
+    timelineFlow$playing <- FALSE;
+    # Reset - to prevent clashes if the timeline is still playing
+    updateSliderInput(inputId = "year", value = min(data_full()$year))
+    
+  })
+  
+  observe({
+    ## If max year is reached, end play
+    if(timelineFlow$current_year == max(data_full()$year)) {
+      timelineFlow$playing <- FALSE;
+    }
+    
+    if(timelineFlow$playing == TRUE) {
+      updateSliderInput(inputId = "year", value = timelineFlow$current_year + 1)
+    }
+    
+  })
   
   output$plot <- renderPlotly({
     if (input$type == "Composites" & nrow(dataset() > 0)) {
@@ -579,7 +636,7 @@ server <- function(input, output, session) {
                           input$year
                         ),
                         names(choices_list_line)[choices_list_line ==
-                                               input$x]
+                                                   input$x]
                       ))
       ylab1 <-
         ifelse(
@@ -621,10 +678,14 @@ server <- function(input, output, session) {
           xlab(str_wrap(xlab1, 90)) +
           ylab(str_wrap(ylab1, 90)) +
           xlim(c(min(dataset(
+            
           )$x), max(dataset(
+            
           )$x))) +
           ylim(c(min(dataset(
+            
           )$y), max(dataset(
+            
           )$y))) +
           theme_light() +
           theme(
@@ -646,24 +707,6 @@ server <- function(input, output, session) {
       p1 %>% ggplotly()
     }
   })
-  
-  observe({
-    current_year <- as.numeric(input$year)
-    if (input$play == TRUE & !current_year == max(data_full()$year)) {
-      updateSliderInput(inputId = "year", value = current_year + 1)
-    }
-    if (input$play == TRUE & current_year == max(data_full()$year)) {
-      updateCheckboxInput(inputId = "play", value = FALSE)
-    }
-    
-    if (input$restart == TRUE) {
-      updateSliderInput(inputId = "year", value = min(data_full()$year))
-      updateCheckboxInput(inputId = "play", value = TRUE)
-      updateCheckboxInput(inputId = "restart", value = FALSE)
-    }
-  })
-  
-  
   
   output$plot2 <- renderPlot(res = 130, {
     if (input$type == "8D" & nrow(dataset() > 0)) {
@@ -729,10 +772,14 @@ server <- function(input, output, session) {
             legend.text = element_text(size = 6)
           ) +
           xlim(c(min(dataset(
+            
           )$x), max(dataset(
+            
           )$x))) +
           ylim(c(min(dataset(
+            
           )$y), max(dataset(
+            
           )$y))) +
           ggtitle(paste(xlab1, "vs", ylab1), subtitle = input$year) +
           xlab(xlab1) +
