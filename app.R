@@ -4,24 +4,18 @@ library(plotly)
 library(ggnewscale)
 library(ggrepel)
 library(shinyWidgets)
-library(RColorBrewer)
+library(RColorBrewer)  
 
 shinydata <- readRDS(file = "shinydata.RDS")
-shinydata$full_data$`no line` <- ""
+shinydata$full_data$`no line` <- "" 
+    
+source('prepare_choice_lists.R'  ) 
 
-source('prepare_choice_lists.R')
-
-ui <- fluidPage(
-  tags$head(
-    tags$link(rel = "stylesheet", type = "text/css", href = "app.css")
-  ),
-  
-  
-  titlePanel("SDG Explorer"),
-  
-  sidebarLayout(
+ui <- htmlTemplate("template.html",
+                     
+  sidebar =
     sidebarPanel(
-      width = 3,
+      width = 12,
       selectInput(
         "type",
         "Plot Type",
@@ -30,8 +24,8 @@ ui <- fluidPage(
       
       selectInput(
         "x",
-        "Variable on X axis",
-        choices = choices_list_x,
+        "Variable on X axis", 
+        choices = choices_list_x,  
         selected = shinydata$SDGNames$Var[1]
       ),
       
@@ -175,8 +169,8 @@ ui <- fluidPage(
       )
     ),
     
-    mainPanel(
-      width = 9,
+    main = mainPanel(
+      width = 12,
       
       htmlOutput("TopText"),
       
@@ -219,7 +213,6 @@ ui <- fluidPage(
       
       htmlOutput("BottomText"),
     )
-  )
 )
 
 # Define server logic required to draw a histogram

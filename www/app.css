@@ -3,6 +3,6 @@
 }
   
 .selectize-input, .selectize-dropdown {
-  font-size: 80%;
+  font-size: 80% !important;
 }
 
