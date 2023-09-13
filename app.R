@@ -6,8 +6,7 @@ library(ggrepel)
 library(shinyWidgets)
 library(RColorBrewer)
 
-shinydata <- readRDS(file = "shinydata.RDS")
-shinydata$full_data$`no line` <- ""
+
 
 source("prepare_choice_lists.R")
 source("sidebar_panel.R")

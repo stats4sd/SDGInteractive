@@ -1,4 +1,5 @@
-
+shinydata <- readRDS(file = "shinydata.RDS")
+shinydata$full_data$`no line` <- ""
 ## Setup different choices lists
 plot_types <- c(
   "Pairwise - Interactive" = "Composites",
