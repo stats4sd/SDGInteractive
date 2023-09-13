@@ -4,15 +4,15 @@ library(plotly)
 library(ggnewscale)
 library(ggrepel)
 library(shinyWidgets)
-library(RColorBrewer)  
+library(RColorBrewer)
 
 shinydata <- readRDS(file = "shinydata.RDS")
-shinydata$full_data$`no line` <- "" 
-    
-source('prepare_choice_lists.R'  ) 
+shinydata$full_data$`no line` <- ""
+
+source('prepare_choice_lists.R')
 
 ui <- htmlTemplate("template.html",
-                     
+
   sidebar =
     sidebarPanel(
       width = 12,
@@ -21,28 +21,28 @@ ui <- htmlTemplate("template.html",
         "Plot Type",
         choices = plot_types
       ),
-      
+
       selectInput(
         "x",
-        "Variable on X axis", 
-        choices = choices_list_x,  
+        "Variable on X axis",
+        choices = choices_list_x,
         selected = shinydata$SDGNames$Var[1]
       ),
-      
+
       checkboxInput("delta_x", "Plot change in x?", value = FALSE),
-      
+
       selectInput(
         "y",
         "Variable on Y axis",
         choices = choices_list[!names(choices_list) %in% c("None", "Region", "Sub-region", "Income Group")],
         selected = shinydata$SDGNames$Var[2]
       ),
-      
+
       checkboxInput("delta_y", "Plot change in y?", value = FALSE),
-      
+
       conditionalPanel(
         "input.delta_x == '1' || input.delta_y == '1'",
-        
+
         sliderInput(
           "baseline_year",
           "Year to set as baseline for change",
@@ -53,39 +53,39 @@ ui <- htmlTemplate("template.html",
           sep = ""
         )
       ),
-      
+
       selectInput(
         "size",
         "Variable for size",
         choices = choices_list,
         selected = "population"
       ),
-      
+
       selectInput(
         "colour1",
         "Variable for point colour",
         choices = choices_list,
         selected = "Region"
       ),
-      
+
       # Extra Pairwise options
       conditionalPanel(
         "input.type == '8D'",
-        
+
         selectInput(
           "colour2",
           "Variable for outer colour",
           choices = choices_list,
           selected = "none"
         ),
-        
+
         selectInput(
           "shape",
           "Variable for shape",
           choices = choices_list,
           selected = "none"
         ),
-        
+
         selectInput(
           "colour_line",
           "Variable for line colour",
@@ -93,7 +93,7 @@ ui <- htmlTemplate("template.html",
           selected = "none"
         ),
       ),
-      
+
       ## Select Points by
       selectInput(
         "method",
@@ -101,8 +101,8 @@ ui <- htmlTemplate("template.html",
         choices = c("Country", "Region", "Sub-region", "Income"),
         multiple = TRUE
       ),
-      
-    
+
+
       conditionalPanel(
         "input.method.indexOf('Country') > -1",
         multiInput(
@@ -168,12 +168,12 @@ ui <- htmlTemplate("template.html",
         actionButton("no_income", label = "Deselect All Income Groups")
       )
     ),
-    
+
     main = mainPanel(
       width = 12,
-      
+
       htmlOutput("TopText"),
-      
+
       fluidRow(
         column(
           sliderInput(
@@ -187,30 +187,30 @@ ui <- htmlTemplate("template.html",
           ),
           width = 5
         ),
-        
+
         column(actionButton("play", "Play"), width = 1),
         column(actionButton("restart", "Reset"), width = 1)
       ),
-      
-      conditionalPanel("input.type != '8D' ", 
+
+      conditionalPanel("input.type != '8D' ",
         plotlyOutput("plot")
       ),
-      
+
       conditionalPanel("input.type == '8D' ",
-        
+
         plotOutput(
-          "plot2", 
-           width = "100%", 
+          "plot2",
+           width = "100%",
            height = "620px"
           ),
-        
+
         checkboxInput(
-          "shownames", 
-          "Show Country Names", 
+          "shownames",
+          "Show Country Names",
           value = TRUE
         )
       ),
-      
+
       htmlOutput("BottomText"),
     )
 )
@@ -223,8 +223,8 @@ server <- function(input, output, session) {
                              Direct link to raw data used can be found here <a href='https://dashboards.sdgindex.org/static/downloads/files/SDR2023-data.xlsx'> here</a>  <br><br>"
     )
   )
-  
-  
+
+
   output$BottomText <- renderText({
     footnote <- ""
     if (input$x %in% shinydata$SDGNames$Var) {
@@ -270,7 +270,7 @@ server <- function(input, output, session) {
           )
         )
     }
-    
+
     if (input$y %in% shinydata$codes$IndCode) {
       footnote <-
         paste0(
@@ -287,7 +287,7 @@ server <- function(input, output, session) {
           )
         )
     }
-    
+
     if (input$colour1 %in% shinydata$SDGNames$Var) {
       footnote <-
         paste(footnote,
@@ -330,7 +330,7 @@ server <- function(input, output, session) {
           )
         )
     }
-    
+
     if (input$colour2 %in% shinydata$codes$IndCode) {
       footnote <-
         paste0(
@@ -347,7 +347,7 @@ server <- function(input, output, session) {
           )
         )
     }
-    
+
     if (input$colour_line %in% shinydata$SDGNames$Var) {
       footnote <-
         paste(footnote,
@@ -377,7 +377,7 @@ server <- function(input, output, session) {
           )
         )
     }
-    
+
     if (input$shape %in% shinydata$SDGNames$Var) {
       footnote <-
         paste(footnote,
@@ -438,7 +438,7 @@ server <- function(input, output, session) {
     }
     HTML(footnote)
   })
-  
+
   data_full <- reactive({
     d <-   shinydata$full_data %>% mutate(none = 1)
     if ("Country" %in% input$method) {
@@ -453,9 +453,9 @@ server <- function(input, output, session) {
     if ("Sub-region" %in% input$method) {
       d <-   d %>% filter(sub.region %in% input$sub)
     }
-    
-    
-    
+
+
+
     d %>%
       mutate(
         x = get(input$x),
@@ -477,9 +477,9 @@ server <- function(input, output, session) {
              colour_line,
              size) %>%
       na.omit()
-    
+
   })
-  
+
   dataset <- reactive({
     d <- data_full()
     if (input$delta_x == TRUE | input$delta_y == TRUE) {
@@ -490,7 +490,7 @@ server <- function(input, output, session) {
           min(year),
           as.numeric(input$baseline_year)
         )) -> d
-      
+
       if (input$delta_x == TRUE) {
         d <- d %>%
           mutate(baseline_x = ifelse(year == baseline_year, x, NA)) %>%
@@ -503,12 +503,12 @@ server <- function(input, output, session) {
           mutate(y = y - mean(baseline_y, na.rm = T)) %>%
           select(-baseline_y)
       }
-      
+
     }
     d %>%
       ungroup()
   })
-  
+
   observeEvent(input$all_country, {
     updateMultiInput(
       session = session,
@@ -521,7 +521,7 @@ server <- function(input, output, session) {
                      inputId = "countries",
                      selected = "")
   })
-  
+
   observeEvent(input$all_regions, {
     updateMultiInput(
       session = session,
@@ -534,7 +534,7 @@ server <- function(input, output, session) {
                      inputId = "regions",
                      selected = "")
   })
-  
+
   observeEvent(input$all_sregion, {
     updateMultiInput(
       session = session,
@@ -547,7 +547,7 @@ server <- function(input, output, session) {
                      inputId = "sub",
                      selected = "")
   })
-  
+
   observeEvent(input$all_income, {
     updateMultiInput(
       session = session,
@@ -560,42 +560,42 @@ server <- function(input, output, session) {
                      inputId = "income",
                      selected = "")
   })
-  
+
   ## Play through the years
   timelineFlow <- reactiveValues(
     playing = FALSE,
     current_year = NULL,
   )
-  
-  
+
+
   observeEvent(input$year, {
     timelineFlow$current_year = input$year
   })
-  
-  
+
+
   observeEvent(input$play, {
     timelineFlow$playing <- TRUE
   })
-  
+
   observeEvent(input$restart, {
     timelineFlow$playing <- FALSE;
     # Reset - to prevent clashes if the timeline is still playing
     updateSliderInput(inputId = "year", value = min(data_full()$year))
-    
+
   })
-  
+
   observe({
     ## If max year is reached, end play
     if(timelineFlow$current_year == max(data_full()$year)) {
       timelineFlow$playing <- FALSE;
     }
-    
+
     if(timelineFlow$playing == TRUE) {
       updateSliderInput(inputId = "year", value = timelineFlow$current_year + 1)
     }
-    
+
   })
-  
+
   output$plot <- renderPlotly({
     if (input$type == "Composites" & nrow(dataset() > 0)) {
       #    if(as.numeric(input$year)<min(data_full()$year) | as.numeric(input$year)>max(data_full()$year)){
@@ -612,7 +612,7 @@ server <- function(input, output, session) {
         max = max(data_full()$year)
       )
       # }
-      
+
       xlab1 <- ifelse(input$x == "year",
                       "Year",
                       ifelse(
@@ -639,12 +639,12 @@ server <- function(input, output, session) {
           ),
           names(choices_list_line)[choices_list_line == input$y]
         )
-      
-      
+
+
       (
         dataset() %>%
           filter(year <= as.numeric(input$year)) %>%
-          
+
           ggplot(
             aes(
               y = y,
@@ -667,14 +667,14 @@ server <- function(input, output, session) {
           xlab(str_wrap(xlab1, 90)) +
           ylab(str_wrap(ylab1, 90)) +
           xlim(c(min(dataset(
-            
+
           )$x), max(dataset(
-            
+
           )$x))) +
           ylim(c(min(dataset(
-            
+
           )$y), max(dataset(
-            
+
           )$y))) +
           theme_light() +
           theme(
@@ -688,15 +688,15 @@ server <- function(input, output, session) {
             xlab1, "vs", ylab1
           ), 90), subtitle = input$year)
       ) -> p1
-      
+
       if (input$colour1 %in% c("Region", "sub.region", "Income.Group")) {
         p1 <- p1 + scale_color_manual(values = shinydata$manual_colours)
       }
-      
+
       p1 %>% ggplotly()
     }
   })
-  
+
   output$plot2 <- renderPlot(res = 130, {
     if (input$type == "8D" & nrow(dataset() > 0)) {
       #    if(as.numeric(input$year)<min(data_full()$year) | as.numeric(input$year)>max(data_full()$year)){
@@ -713,7 +713,7 @@ server <- function(input, output, session) {
         max = max(data_full()$year)
       )
       # }
-      
+
       xlab1 <- ifelse(input$x == "year",
                       "Year",
                       ifelse(
@@ -738,12 +738,12 @@ server <- function(input, output, session) {
         ),
         names(choices_list_line)[choices_list_line == input$y]
       )
-      
-      
-      
-      
-      
-      
+
+
+
+
+
+
       (
         dataset() %>%
           filter(year <= as.numeric(input$year)) %>%
@@ -761,20 +761,20 @@ server <- function(input, output, session) {
             legend.text = element_text(size = 6)
           ) +
           xlim(c(min(dataset(
-            
+
           )$x), max(dataset(
-            
+
           )$x))) +
           ylim(c(min(dataset(
-            
+
           )$y), max(dataset(
-            
+
           )$y))) +
           ggtitle(paste(xlab1, "vs", ylab1), subtitle = input$year) +
           xlab(xlab1) +
           ylab(ylab1)
       ) -> p1
-      
+
       if (input$colour_line != "none" &
           input$colour_line != "no line") {
         if (class(dataset()$colour_line) == "numeric" |
@@ -789,28 +789,28 @@ server <- function(input, output, session) {
           c1 <- scale_color_brewer(palette = "Greens")
           #}
         }
-        
-        
+
+
         p1 <-
           p1 + geom_line(aes(group = Country, colour = colour_line), alpha = 0.5) +
           c1 +
           labs(colour = names(choices_list_line)[choices_list_line == input$colour_line]) +
           new_scale_colour()
       }
-      
+
       if (input$colour_line == "none") {
         p1 <- p1 + geom_line(aes(group = Country),
                              col = "gray50",
                              alpha = 0.2)
       }
-      
-      
+
+
       if (input$colour1 != "none") {
         if (class(dataset()$colour1) == "numeric" |
             class(dataset()$colour1) == "integer" |
             class(dataset()$colour1) == "double") {
           c2 <- scale_fill_fermenter(palette = "Reds", direction = 1)
-          
+
         } else{
           if (input$colour1 %in% c("Region", "sub.region", "Income.Group")) {
             c2 <- scale_fill_manual(values = shinydata$manual_colours)
@@ -819,7 +819,7 @@ server <- function(input, output, session) {
             c2 <- scale_fill_brewer(palette = "Reds", direction = 1)
           }
         }
-        
+
         p1 <- p1 +
           geom_point(
             data = filter(dataset(), year == as.numeric(input$year)),
@@ -832,13 +832,13 @@ server <- function(input, output, session) {
           c2 +
           labs(fill = names(choices_list_line)[choices_list_line == input$colour1])
       }
-      
+
       if (input$colour2 != "none") {
         if (class(dataset()$colour2) == "numeric" |
             class(dataset()$colour2) == "integer" |
             class(dataset()$colour2) == "double") {
           c3 <- scale_colour_fermenter(palette = "Blues", direction = 1)
-          
+
         } else{
           if (input$colour2 %in% c("Region", "sub.region", "Income.Group")) {
             c3 <- scale_color_manual(values = shinydata$manual_colours)
@@ -847,7 +847,7 @@ server <- function(input, output, session) {
             c3 <- scale_fill_brewer(palette = "Blues", direction = 1)
           }
         }
-        
+
         p1 <- p1 +
           geom_point(
             data = filter(dataset(), year == as.numeric(input$year)),
@@ -875,8 +875,8 @@ server <- function(input, output, session) {
           c3 +
           labs(colour = names(choices_list_line)[choices_list_line == input$colour2])
       }
-      
-      
+
+
       if (input$shape != "none") {
         p1 <- p1 +
           geom_point(
@@ -893,7 +893,7 @@ server <- function(input, output, session) {
         p1 <- p1 +
           labs(size = names(choices_list_line)[choices_list_line == input$size])
       }
-      
+
       if (input$shownames == TRUE) {
         p1 <- p1 +
           geom_text_repel(
@@ -913,10 +913,10 @@ server <- function(input, output, session) {
           legend.key.size = unit(0.6, "lines")
         )
     }
-    
-    
+
+
   })
-  
+
 }
 # Run the application
 shinyApp(ui = ui, server = server)
