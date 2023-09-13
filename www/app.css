@@ -1,8 +1,35 @@
 .recalculating {
   opacity: 1.0;
 }
-  
+
 .selectize-input, .selectize-dropdown {
   font-size: 80% !important;
 }
 
+.checkbox {
+  margin-bottom: 1.5em;
+}
+
+.btn-default {
+    border: 1px solid darkslategray;
+    background-color: lightgray
+}
+
+.btn-default:hover {
+  border: 1px solid gray;
+  background-color: lightblue;
+}
+
+.multi-wrapper a {
+  text-decoration: none;
+}
+
+.btn-select {
+  font-size: 0.9em;
+  text-wrap: wrap;
+}
+
+.shiny-input-container {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
