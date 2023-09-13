@@ -33,3 +33,16 @@
   margin-top: 1em;
   margin-bottom: 1em;
 }
+
+.year-input .shiny-input-container {
+  width: 100% !important;
+}
+
+.mw-1500 {
+  max-width: 1800px;
+  margin-left: 0px !important;
+}
+
+.divider-top {
+  height: 100px !important;
+}

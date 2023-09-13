@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- template.html -->
-<html>
+<html class="h-100">
   <head>
     <link
       rel="stylesheet"
@@ -10,42 +10,55 @@
     {{ headContent() }}
   </head>
   <body class="h-100">
-    <div class="container-fluid">
-      <div class="row h-100">
-        <div class="col-sm-6 col-md-4 col-lg-3 ms-0 ps-0 h-100">
-          <div class="bg-light ms-0 vh-100 h-100 px-4">
-            <div class="navbar navbar-light mb-4">
-              <div class="navbar-brand">
-                <h2>SDG Explorer</h2>
-              </div>
-            </div>
-            {{ sidebar }}
+    <div class="container-fluid mw-1500">
+      <div class="d-flex h-100 align-items-stretch">
+        <div class="col-sm-6 col-md-4 col-lg-3 ms-0 ps-0">
+          <div class="bg-light ms-0 h-100 px-4">
+              <div class="divider-top"></div>
+              {{ sidebar }}
           </div>
         </div>
-        <div class="col-sm-6 col-md-8 col-lg-9 mt-4">
+        <div class="col-sm-6 col-md-8 col-lg-9 mt-4 ps-2">
           <div class="row">
-            <div class="col-12">
-              Data for SDG goals extracted from the
-              <a href="https://dashboards.sdgindex.org/"
-                >Sustainable Development Report 2023</a
-              >.
+            <div class="col-12 d-flex justify-content-between align-items-center">
+              <h1 class="ms-4">SDG Interactive Data Explorer</h1>
+              <div class="d-flex justify-content-end align-items-center">
 
-              <br />
+                <img src="stats4sd-logo.png" width="150px" height="auto"/>
+                <img src="icraf-logo.png" width="75px" height="auto"/>
 
-              Direct link to raw data used can be found here
-              <a
-                href="https://dashboards.sdgindex.org/static/downloads/files/SDR2023-data.xlsx"
-                >here</a
-              >
+              </div>
+            </div>
+            <div class="col-10 m-4">
+              <div class="alert alert-info show">
+                This tool, designed by <a href="stats4sd.org">Statistics for Sustainable Development</a> in collaboration with <a href="https://www.worldagroforestry.org/">World Agroforestry (ICRAF)</a>, is intended to let users explore data on different SDGs. <br/><br/>
+                You can plot data from any SDG or any individual indicators against each other, and view how the data changes over time. You can also assign SDGs to the size, point colour, shape and line colour to really dig into the data. <br/><br/>
+                Data for SDG goals extracted from the <a href="https://dashboards.sdgindex.org/">Sustainable Development Report 2023</a>.
+                A direct link to raw data used can be found <a href="https://dashboards.sdgindex.org/static/downloads/files/SDR2023-data.xlsx">here</a>.
+              </div>
             </div>
           </div>
+          <div class="mb-4 pb-4">
+            {{ timeline }}
+          </div>
 
-          {{ timeline }} {{ plot_plotly }} {{ plot_interactive }}
-          <div class="card mt-4">
-            <div class="card-header">
-              <h5 class="mb-0">Variables included</h5>
+          <div class="mb-4 pb-4">
+
+            {{ plot_plotly }}
+            {{ plot_interactive }}
+
+          </div>
+
+          <div class="row">
+
+            <div class="col-10 ms-4 ps-4">
+              <div class="card mt-4">
+                <div class="card-header">
+                  <h5 class="mb-0">Variables included</h5>
+                </div>
+                <div class="card-body">{{ bottom_text }}</div>
+              </div>
             </div>
-            <div class="card-body">{{ bottom_text }}</div>
           </div>
         </div>
       </div>
